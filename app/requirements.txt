@@ -1,0 +1,2 @@
+# No external dependencies for the tiny app
+# Add them here if you expand the app later
