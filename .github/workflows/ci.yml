@@ -52,10 +52,8 @@ jobs:
       - name: Run Semgrep (code scanner)
         run: |
           pip install semgrep
-          # Fail the build if high/error findings are found
-          semgrep --config=p/security-audit --error --severity ERROR app/ || true
-          # Note: || true temporarily so we can see results; remove later if you want hard fail
-          # For now we use --error which exits non-zero on findings
+          # --error makes the command exit non-zero if findings are found
+          semgrep --config=p/security-audit --error --severity ERROR app/
 
       - name: Run Checkov (Terraform / IaC scanner)
         uses: bridgecrewio/checkov-action@v12
