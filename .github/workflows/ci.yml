@@ -7,6 +7,7 @@ on:
     branches: [ main ]
 
 # Least privilege: token is read-only by default
+# id-token: write is required only for the job that needs OIDC
 permissions:
   contents: read
 
@@ -34,9 +35,18 @@ jobs:
   terraform-plan:
     runs-on: ubuntu-latest
     needs: test-app
+    permissions:
+      id-token: write   # Required to request the OIDC token
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::892286227186:role/GitHubActions-SecureCICD-Demo
+          aws-region: us-east-1
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -50,4 +60,3 @@ jobs:
       - name: Terraform Plan
         working-directory: terraform
         run: terraform plan
-        # Note: real AWS auth via OIDC will be added later
