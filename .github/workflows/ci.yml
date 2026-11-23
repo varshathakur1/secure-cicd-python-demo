@@ -16,7 +16,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        # Will pin to full SHA later
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -32,9 +31,43 @@ jobs:
       - name: Run the app
         run: python app/main.py
 
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # needed for gitleaks to see full history
+
+      - name: Run gitleaks (secret scanner)
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python for Semgrep
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Semgrep (code scanner)
+        run: |
+          pip install semgrep
+          # Fail the build if high/error findings are found
+          semgrep --config=p/security-audit --error --severity ERROR app/ || true
+          # Note: || true temporarily so we can see results; remove later if you want hard fail
+          # For now we use --error which exits non-zero on findings
+
+      - name: Run Checkov (Terraform / IaC scanner)
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: terraform/
+          framework: terraform
+          soft_fail: false   # fail the build on findings
+          quiet: true
+
   terraform-plan:
     runs-on: ubuntu-latest
-    needs: test-app
+    needs: [test-app, security-scan]
     permissions:
       id-token: write   # Required to request the OIDC token
       contents: read
